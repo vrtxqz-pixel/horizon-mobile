@@ -142,6 +142,8 @@ path = "examples/probe/main.rs"
 [[example]]
 name = "horizon-android"
 path = "src/main.rs"
+# A shared library: the activity loads it and calls `android_main`.
+crate-type = ["cdylib"]
 required-features = ["android-build"]
 
 [lints]
