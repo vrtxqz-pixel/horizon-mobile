@@ -12,9 +12,9 @@ then download `horizon-android-apk` from the run. By hand, with the NDK and `car
 
     rustup target add aarch64-linux-android
     cargo install cargo-apk --version 0.10.0 --locked
-    cargo apk build --release -p horizon-client --bin horizon-client --no-default-features
+    cargo apk build --release -p horizon-client --example horizon-android --no-default-features --features android-build
 
-`--no-default-features` leaves out sound and controllers (cpal and gilrs have no Android build set
+`horizon-android` is the game's `main.rs` again as an example, because `cargo apk` builds a library or an example, not a binary. `--no-default-features` leaves out sound and controllers (cpal and gilrs have no Android build set
 up here yet). The APK is signed with whatever key `CARGO_APK_RELEASE_KEYSTORE` names.
 
 ## The game's files

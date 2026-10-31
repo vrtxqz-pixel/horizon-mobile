@@ -92,7 +92,7 @@ wgpu = { version = "30.0.1", default-features = false, features = ["gles"] }
 # The icon resource in the .exe (build.rs).
 winresource = "0.1"
 
-# `cargo apk build --release -p horizon-client --bin horizon-client --no-default-features`
+# `cargo apk build --release -p horizon-client --example horizon-android --no-default-features --features android-build`
 # (.github/workflows/android.yml, docs/android.md).
 [package.metadata.android]
 package = "dev.horizonlab.horizon"
@@ -120,6 +120,8 @@ version = 0x00401000
 
 [features]
 default = ["audio", "controllers"]
+# Builds the `horizon-android` example, the game as the APK's native library (docs/android.md).
+android-build = []
 # Sound output. Without it (and `controllers`) the program links neither libasound nor libudev on
 # Linux: the server build (`--no-default-features`, released as horizon-engine; docs/server.md).
 audio = ["horizon-client-render/audio"]
@@ -132,6 +134,15 @@ rng-trace = ["horizon-core/rng-trace"]
 [[example]]
 name = "client_probe"
 path = "examples/probe/main.rs"
+
+# The game again, as the example `cargo apk` builds into the APK: cargo-apk takes a library or an example
+# as the native library, not a binary. Same file, so same crate root; only built with `android-build`
+# (docs/android.md), so desktop builds and tests don't compile the game twice. Cargo warns that
+# main.rs belongs to two targets.
+[[example]]
+name = "horizon-android"
+path = "src/main.rs"
+required-features = ["android-build"]
 
 [lints]
 workspace = true
