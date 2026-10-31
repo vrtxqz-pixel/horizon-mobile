@@ -111,6 +111,31 @@ pub fn helper_clipboard_contents(clipboard: &str) -> String {
     strip_formatting(&clipboard.replace('\r', ""))
 }
 
+/// The platform's clipboard: arboard, which has no Android build. There the game's own copy
+/// (`SystemClipboard::copied`) is the only clipboard until a JNI one is written.
+#[cfg(not(target_os = "android"))]
+use arboard as os;
+#[cfg(target_os = "android")]
+mod os {
+    #[derive(Debug)]
+    pub enum Error {
+        ContentNotAvailable,
+        Unsupported,
+    }
+    pub struct Clipboard;
+    impl Clipboard {
+        pub fn new() -> Result<Self, Error> {
+            Err(Error::Unsupported)
+        }
+        pub fn get_text(&mut self) -> Result<String, Error> {
+            Err(Error::ContentNotAvailable)
+        }
+        pub fn set_text(&mut self, _text: String) -> Result<(), Error> {
+            Err(Error::Unsupported)
+        }
+    }
+}
+
 /// A clipboard: the system's, or an in-memory one in tests.
 pub trait Clipboard {
     /// `KeyboardHandler.getClipboard`: empty when there is no text.
@@ -125,7 +150,7 @@ pub trait Clipboard {
 /// game can still be pasted in the game.
 #[derive(Default)]
 pub struct SystemClipboard {
-    system: Option<arboard::Clipboard>,
+    system: Option<os::Clipboard>,
     /// The text Horizon last copied (`horizon-ctl status`).
     copied: Option<String>,
 }
@@ -135,9 +160,9 @@ impl SystemClipboard {
     pub fn copied(&self) -> Option<&str> {
         self.copied.as_deref()
     }
-    fn system(&mut self) -> Option<&mut arboard::Clipboard> {
+    fn system(&mut self) -> Option<&mut os::Clipboard> {
         if self.system.is_none() {
-            self.system = arboard::Clipboard::new().ok();
+            self.system = os::Clipboard::new().ok();
         }
         self.system.as_mut()
     }
@@ -150,7 +175,7 @@ impl Clipboard for SystemClipboard {
         };
         match system.get_text() {
             Ok(text) => text,
-            Err(arboard::Error::ContentNotAvailable) => String::new(),
+            Err(os::Error::ContentNotAvailable) => String::new(),
             Err(_) => {
                 // A lost connection (a restarted compositor): reconnect next time.
                 self.system = None;
