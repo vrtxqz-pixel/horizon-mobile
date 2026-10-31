@@ -49,7 +49,24 @@ jobs:
           } >> "$GITHUB_ENV"
       - name: Build the APK
         # No audio and no controllers yet: neither builds for Android (docs/android.md).
-        run: cargo apk build --release -p horizon-client --example horizon-android --no-default-features --features android-build
+        run: |
+          set -o pipefail
+          cargo apk build --release -p horizon-client --example horizon-android --no-default-features --features android-build 2>&1 | tee "$RUNNER_TEMP/build.log"
+      - name: Show the first errors as annotations
+        # Annotations can be read through the API, so a failed build can be diagnosed without the log.
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import os, re
+          log = open(os.environ["RUNNER_TEMP"] + "/build.log", errors="replace").read().splitlines()
+          pick = re.compile(r"^(error(\[E\d+\])?:|.*panicked at|Error:)")
+          starts = [i for i, line in enumerate(log) if pick.match(line)]
+          def esc(text):
+              return text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+          for n, i in enumerate(starts[:9], 1):
+              print("::error title=build error %d::%s" % (n, esc("\n".join(log[i:i + 14]))))
+          print("::notice title=build log tail::%s" % esc("\n".join(log[-25:])))
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: horizon-android-apk
